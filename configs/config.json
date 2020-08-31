@@ -11,6 +11,7 @@
     "use_weak_lables":false,
     "weakly_loss_w": 0.4,
     "pretrained": true,
+    "year": "2012",
 
     "model":{
         "supervised": false,
@@ -55,9 +56,14 @@
         }
     },
 
+    "data_settings":{
+        
+
+    },
 
     "train_supervised": {
-        "data_dir": "/home/trojrobert/Documents/Thesis/CCT/Data",
+        "data_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/data",
+        "splits_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/dataloaders/voc_splits",
         "batch_size": 10,
         "crop_size": 32,
         "shuffle": true,
@@ -67,32 +73,56 @@
         "flip": true,
         "rotate": false,
         "blur": false,
+        "colour_attributes" : {
+            "brightness": 0.1,
+            "contrast": 0.1,
+            "saturation": 0.1,
+            "hue": 0.1
+        },
+        "ignore_index": 255,
+        "mean": [0.485, 0.456, 0.406],
+        "std": [0.229, 0.224, 0.225],
         "split": "train_supervised",
         "num_workers": 8
+ 
     },
 
     "train_unsupervised": {
-        "data_dir": "/home/trojrobert/Documents/Thesis/CCT/Data",
-        "weak_labels_output": "pseudo_labels/result/pseudo_labels",
+        "data_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/data",
+        "splits_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/dataloaders/voc_splits",
         "batch_size": 10,
         "crop_size": 32,
         "shuffle": true,
         "base_size": 40,
-        "scale": true,
         "augment": true,
+        "scale": true,
         "flip": true,
         "rotate": false,
         "blur": false,
+        "colour_attributes":{
+            "brightness": 0.1,
+            "contrast": 0.1,
+            "saturation": 0.1,
+            "hue": 0.1
+        },
+        "ignore_index": 255,
+        "mean": [0.485, 0.456, 0.406],
+        "std": [0.229, 0.224, 0.225],
         "split": "train_unsupervised",
+        "weak_labels_output": "pseudo_labels/result/pseudo_labels",
         "num_workers": 8
     },
 
     "val_loader": {
-        "data_dir": "/home/trojrobert/Documents/Thesis/CCT/Data",
+        "data_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/data",
+        "splits_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/dataloaders/voc_splits",
         "batch_size": 1,
         "val": true,
         "split": "val",
         "shuffle": false,
+        "ignore_index": 255,
+        "mean": [0.485, 0.456, 0.406],
+        "std": [0.229, 0.224, 0.225],
         "num_workers": 4
     },
 

@@ -1,24 +1,32 @@
-class BaseDataset(Dataset):
+import numpy as np 
 
-    def __init__(self, data_dir, splits_dir,base_size=None, augment=True, colour_attributes=None, val=False,
+from torch.utils.data import Dataset
+from torchvision import transforms
+
+class BaseDataSet(Dataset):
+
+    def __init__(self, data_dir, split, splits_dir, mean, std, ignore_index, base_size=None, augment=True, colour_attributes=None, val=False,
                 jitter=False, use_weak_lables=False, weak_labels_output=None, crop_size=None,
                  scale=False, flip=False, rotate=False, blur=False, return_id=False, n_labeled_examples=None):
 
         self.root =  data_dir
         self.splits_dir = splits_dir
-        self.mean = mean
+        self.split = split
+
+        self.mean = mean 
         self.std = std
+
         self.crop_size = crop_size
         self.colour_attributes = colour_attributes
         self.ignore_index = ignore_index
         self.val = val
 
-        self.image_padding = (np.array(mean)*255.).tolist()
+
+        self.image_padding = (np.array(self.mean)*255.).tolist()
 
         self.n_labeled_examples = n_labeled_examples
 
         self.return_id = return_id
-
 
         self.augment = augment
         if self.augment:
@@ -28,11 +36,16 @@ class BaseDataset(Dataset):
             self.rotate = rotate
             self.blur = blur
 
+       
+
         self.use_weak_lables = use_weak_lables
         self.weak_labels_output = weak_labels_output
 
         self.to_tensor = transforms.ToTensor()
         self.normalize = transforms.Normalize(mean, std)
+
+        self.files = []
+        self._set_files()
 
     """
     def _augmentation(self, index, image, label):
@@ -46,6 +59,40 @@ class BaseDataset(Dataset):
         label = torch.from_numpy(np.array(label, dtype=np.int32)).long()
         return image, label 
     """
+    def __len__(self):
+        """change the behaviour of len method"""
+        return len(self.files)
+
+    def __repr__(self):
+        """change the behaviour of the print function"""
+
+        fmt_str = "Dataset: " + self.__class__.__name__ + "\n"
+        fmt_str += "    # data: {}\n".format(self.__len__())
+        fmt_str += "    Split: {}\n".format(self.split)
+        fmt_str += "    Root: {}".format(self.root)
+        return fmt_str
+
+    def __getitem__(self, index):
+        """load and perform data argumentation
+        
+        Args:
+            index (): 
+        
+        Returns:
+            image ():
+            label ()
+        """
+        image, label, image_id = self._load_data(index)
+
+        if self.val:
+            image, label = self._val_augmentation(image, label)
+        elif self.augment: 
+            image, label = self._augmentation(image, label)
+
+        #convert numpy array to tensor
+        label = torch.from_numpy(np.array(label, dtype=np.int32)).long()
+
+        return image, label 
 
     def _set_files(self):
         raise NotImplementedError
@@ -53,7 +100,7 @@ class BaseDataset(Dataset):
     def _load_data(self, index):
         raise NotImplementedError
 
-    def _val_augmentation(self, image, label);
+    def _val_augmentation(self, image, label):
         """resize validate data
 
         Args:
@@ -143,7 +190,7 @@ class BaseDataset(Dataset):
         image = transforms.CenterCrop(self.crop_size)
         label = transforms.CenterCrop(self.crop_size)
         
-        retrun image, label 
+        return image, label 
 
     def _flip(self, image, label):
 
@@ -178,7 +225,7 @@ class BaseDataset(Dataset):
         """
         attributes = list(self.color_attributes.keys())
         expected_attributes = ["brightness", "contrast", "saturation", "hue"]
-        if expected_attributes == intersection(attributes, expected_attributes)
+        if expected_attributes == intersection(attributes, expected_attributes):
 
             image = transforms.ColorJitter(
                 brightness=color_attributes.brightness,
@@ -188,8 +235,3 @@ class BaseDataset(Dataset):
             )
         return image, label
 
-    def _rotate(self, image, label):
-        pass
-
-     def _blur(self, image, label):
-         pass
