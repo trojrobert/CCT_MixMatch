@@ -10,7 +10,10 @@
             "type": "python",
             "request": "launch",
             "program": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/train.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": ["--config=configs/config.json"],
+            "cwd": "${/home/trojrobert/Documents/Thesis/CCT_MixMatch}"
+
         }
     ]
 }

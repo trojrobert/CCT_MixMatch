@@ -4,28 +4,47 @@ import torch
 import argparse 
 
 import dataloaders
+from utils.losses import CE_loss, consistency_weight
 
 import inspect 
 
 def main(config, resume):
 
-    #Download data
+    # Download data
     root_dir = config['train_supervised']["data_dir"] 
     data_year = config["year"]
     print([eval("dataloaders." + objname) for objname in dir(dataloaders) if type(eval("dataloaders." + objname)) is type])
 
     dataloaders.Downloader(root_dir, data_year)
     
-    # DATA LOADERS
+    # Set number of examples 
     config['train_supervised']['n_labeled_examples'] = config['n_labeled_examples']
     config['train_unsupervised']['n_labeled_examples'] = config['n_labeled_examples']
     config['train_unsupervised']['use_weak_lables'] = config['use_weak_lables']
 
+    # Dataloaders
     supervised_loader = dataloaders.VOC(config['train_supervised'])
     unsupervised_loader = dataloaders.VOC(config['train_unsupervised'])
     val_loader = dataloaders.VOC(config['val_loader'])
 
-    iter_per_epoch = len(unsupervised_loader)
+    iters_per_epoch = len(unsupervised_loader)
+
+    # supervised loss 
+    if config['model']['sup_loss'] == 'CE':
+        sup_loss = CE_loss
+    """
+    else: sup_loss = abCE_loss(iters_per_epoch=iter_per_epoch,
+                                epochs=config['trainer']['epochs'],
+                                num_classes = config["num_classes"])
+    """
+    # Model 
+
+    rampup_ends = int(config['ramp_up'] * config['trainer']['epochs'])
+    cons_w_unsup = consistency_weight(final_w=config['unsupervised_w'], 
+                                        iters_per_epoch=iters_per_epoch,
+                                        rampup_ends=rampup_ends)
+
+                                    
  
 
 if __name__=='__main__':

@@ -12,6 +12,7 @@
     "weakly_loss_w": 0.4,
     "pretrained": true,
     "year": "2012",
+    "num_classes" : 21, 
 
     "model":{
         "supervised": false,
