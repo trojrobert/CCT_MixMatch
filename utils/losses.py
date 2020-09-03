@@ -28,3 +28,36 @@ class consistency_weight:
 
 def CE_loss(input_logits, target_targets, ignore_index, temperatute=1):
     return F.cross_entropy(input_logits/temperatute, target_targets, ignore_index=ignore_index)
+
+def softmax_mse_loss(inputs, target, conf_mask=False, threshold=None, use_softmax=False):
+    """Calculate MSE Loss
+
+    Args:
+        inputs() :
+        target() :
+        conf_mask():
+        threshold():
+        use_softmax():
+
+    Return:
+
+    """
+
+    assert inputs.required_grad == True and targets.requires_grad == False
+    assert inputs.size() == targets.size()
+
+    inputs = F.sofmax(inputs, dim=1)
+
+    if use_softmax:
+        target = F.softmax(targets, dim=1)
+
+    if conf_mask:
+        loss_mat = F.mse_loss(inputs, targets, reduction='none')
+        mask = (targets.max(1)[0] > threshold)
+        loss_mat = loss_mat[mask.unsqueeze(1).expand_as(loss_mat)]
+
+        if loss_mat.shape.numel() == 0: loss_mat = torch.tensor([0.]).to(inputs.device)
+        return loss_mat.mean()
+
+    else:
+        return F.mse_loss(inputs, targets, reduction='mean')

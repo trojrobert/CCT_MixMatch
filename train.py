@@ -3,9 +3,10 @@ import json
 import torch
 import argparse 
 
+import models
 import dataloaders
 from utils.losses import CE_loss, consistency_weight
-
+from models.encoder import Encoder
 import inspect 
 
 def main(config, resume):
@@ -37,15 +38,23 @@ def main(config, resume):
                                 epochs=config['trainer']['epochs'],
                                 num_classes = config["num_classes"])
     """
-    # Model 
 
+    # Iteration monitoring 
     rampup_ends = int(config['ramp_up'] * config['trainer']['epochs'])
     cons_w_unsup = consistency_weight(final_w=config['unsupervised_w'], 
                                         iters_per_epoch=iters_per_epoch,
                                         rampup_ends=rampup_ends)
-
-                                    
+    
+    # model
+    model = models.CCT(num_classes = config['num_classes'],
+                        conf=config['model'],
+                        sup_loss = sup_loss, 
+                        cons_w_unsup = cons_w_unsup,
+                        weakly_loss_w = config['weakly_loss_w'],
+                        use_weak_labels = config['use_weak_lables'],
+                        ignore_index = val_loader.dataset.ignore_index)                               
  
+    print(f'\n{model}\n')
 
 if __name__=='__main__':
 
