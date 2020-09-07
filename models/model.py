@@ -1,3 +1,4 @@
+import os  
 
 from utils.losses import * 
 from base import BaseModel
@@ -50,4 +51,13 @@ class CCT(BaseModel):
 
         # Create the model
         self.encoder = Encoder(pretrained=pretrained)  
+
+        #save encoder structure to a file
+        encoder_file_path = 'outputs/encoder_arch.txt'
+        if not os.path.isfile(encoder_file_path):
+            encoder_arch_file = open(encoder_file_path, 'w')
+            encoder_arch_file.write(repr(self.encoder))
+            encoder_arch_file.close()
+
+
 

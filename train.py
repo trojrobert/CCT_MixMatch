@@ -52,8 +52,9 @@ def main(config, resume):
                         cons_w_unsup = cons_w_unsup,
                         weakly_loss_w = config['weakly_loss_w'],
                         use_weak_labels = config['use_weak_lables'],
-                        ignore_index = val_loader.dataset.ignore_index)                               
- 
+
+                       ignore_index = val_loader.dataset.ignore_index)                               
+    
     print(f'\n{model}\n')
 
 if __name__=='__main__':

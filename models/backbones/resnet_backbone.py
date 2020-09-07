@@ -12,7 +12,7 @@ def ResNetBackbone(backbone=None, pretrained=None, multi_grid=None, norm_type='b
             pretrained = 'models/backbones/pretrained/3x3resnet50-imagenet.pth'
         orig_resnet = deepbase_resnet50(pretrained=pretrained)
         arch_net = DilatedResnetBackbone(orig_resnet, dilate_scale=8, multi_grid=multi_grid)
-
+    return arch_net
 class DilatedResnetBackbone(nn.Module): 
 
     def __init__(self, orig_resnet, dilate_scale=8, multi_grid=(1, 2, 4)):
@@ -45,8 +45,8 @@ class DilatedResnetBackbone(nn.Module):
         if classname.find('Conv') != -1: 
 
             # the convolution with stride
-            if m.strike == (2, 2):
-                m.strike = (1, 1)
+            if m.stride == (2, 2):
+                m.stride = (1, 1)
 
                 if m.kernel_size == (3,3):
                     m.dilation = (dilate // 2, dilate // 2)

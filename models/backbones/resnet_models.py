@@ -1,3 +1,4 @@
+import math
 from collections import OrderedDict
 
 import torch.nn as nn
@@ -12,17 +13,14 @@ def deepbase_resnet50(num_classes=1000, pretrained=None, norm_type='batchnorm', 
 
     model = ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, deep_base=True, norm_type=norm_type)
     model = ModuleHelper.load_model(model, pretrained=pretrained)
-    model
+    return model
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes= 1000, deep_base=False, norm_type=None):
+    def __init__(self, block, layers, num_classes=1000, deep_base=False, norm_type=None):
         super(ResNet, self).__init__()
-
         self.inplanes = 128 if deep_base else 64
-
-        if deep_base: 
-
+        if deep_base:
             self.prefix = nn.Sequential(OrderedDict([
                 ('conv1', nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)),
                 ('bn1', ModuleHelper.BatchNorm2d(norm_type=norm_type)(64)),
@@ -31,37 +29,32 @@ class ResNet(nn.Module):
                 ('bn2', ModuleHelper.BatchNorm2d(norm_type=norm_type)(64)),
                 ('relu2', nn.ReLU(inplace=False)),
                 ('conv3', nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=False)),
-                ('bn1', ModuleHelper.BatchNorm2d(norm_type=norm_type)(self.inplanes)),
-                ('relu1', nn.ReLU(inplace=False))
-                
-            ]))
-
-        else: 
+                ('bn3', ModuleHelper.BatchNorm2d(norm_type=norm_type)(self.inplanes)),
+                ('relu3', nn.ReLU(inplace=False))]
+            ))
+        else:
             self.prefix = nn.Sequential(OrderedDict([
                 ('conv1', nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)),
-                ('bn1', ModuleHelper.BatchNorm2d(norm_type=norm_type)(self.inplaces)),
-                ('relu1', nn.ReLU(inplace=False))
-                ]))
-        
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=False)
+                ('bn1', ModuleHelper.BatchNorm2d(norm_type=norm_type)(self.inplanes)),
+                ('relu', nn.ReLU(inplace=False))]
+            ))
+
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=False)  # change.
 
         self.layer1 = self._make_layer(block, 64, layers[0], norm_type=norm_type)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, norm_type=norm_type)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, norm_type=norm_type)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, norm_type=norm_type)
-
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc = nn.Linear(512 * block.expansion , num_classes)
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
-
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
-
-            elif isinstance(m, ModuleHelper.BatchNorm2d(norm_type, ret_cls=True)):
+            elif isinstance(m, ModuleHelper.BatchNorm2d(norm_type=norm_type, ret_cls=True)):
                 m.weight.data.fill_(1)
-                m.bais.data.zero_()
+                m.bias.data.zero_()
 
     def _make_layer(self, block, planes, blocks, stride=1, norm_type=None):
         downsample = None
@@ -133,5 +126,4 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         return out
-
 
