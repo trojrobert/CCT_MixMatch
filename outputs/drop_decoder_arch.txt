@@ -1,0 +1,121 @@
+[DropOutDecoder(
+  (dropout): Dropout2d(p=0.5, inplace=False)
+  (upsample): Sequential(
+    (0): Conv2d(512, 21, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (1): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (2): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (3): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+  )
+), DropOutDecoder(
+  (dropout): Dropout2d(p=0.5, inplace=False)
+  (upsample): Sequential(
+    (0): Conv2d(512, 21, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (1): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (2): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (3): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+  )
+), DropOutDecoder(
+  (dropout): Dropout2d(p=0.5, inplace=False)
+  (upsample): Sequential(
+    (0): Conv2d(512, 21, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (1): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (2): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (3): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+  )
+), DropOutDecoder(
+  (dropout): Dropout2d(p=0.5, inplace=False)
+  (upsample): Sequential(
+    (0): Conv2d(512, 21, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (1): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (2): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (3): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+  )
+), DropOutDecoder(
+  (dropout): Dropout2d(p=0.5, inplace=False)
+  (upsample): Sequential(
+    (0): Conv2d(512, 21, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (1): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (2): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (3): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+  )
+), DropOutDecoder(
+  (dropout): Dropout2d(p=0.5, inplace=False)
+  (upsample): Sequential(
+    (0): Conv2d(512, 21, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (1): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (2): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+    (3): PixelShuffle(
+      (conv): Conv2d(21, 84, kernel_size=(1, 1), stride=(1, 1))
+      (shuf): PixelShuffle(upscale_factor=2)
+      (relu): ReLU(inplace=True)
+    )
+  )
+)]

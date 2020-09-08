@@ -50,6 +50,8 @@ def main(config, resume):
                         conf=config['model'],
                         sup_loss = sup_loss, 
                         cons_w_unsup = cons_w_unsup,
+                        upscale = config['model']['upscale'],
+                        num_out_ch = config['model']['num_out_ch'],
                         weakly_loss_w = config['weakly_loss_w'],
                         use_weak_labels = config['use_weak_lables'],
 

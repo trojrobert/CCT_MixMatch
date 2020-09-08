@@ -19,6 +19,10 @@
         "semi": true,
         "supervised_w": 1,
 
+        "upscale": 8,
+        "num_out_ch": 2048,
+
+
         "sup_loss": "CE",
         "un_loss": "MSE",
 

@@ -1,13 +1,16 @@
 import os  
 
 from utils.losses import * 
+
 from base import BaseModel
+from models.decoders import *
 from models.encoder import Encoder
 
 class CCT(BaseModel):
 
     def __init__(self, num_classes, conf, sup_loss=None,
                     cons_w_unsup=None, ignore_index=None,
+                    upscale = None, num_out_ch = None,
                     testing=False, pretrained=True, use_weak_labels=False,
                     weakly_loss_w=0.4):
 
@@ -39,6 +42,9 @@ class CCT(BaseModel):
 
         self.sup_loss = sup_loss 
         self.sup_type = conf['sup_loss']
+
+        self.upscale = upscale
+        self.num_out_ch = num_out_ch
         
         self.use_weak_lables = use_weak_labels
         self.weakly_loss_w = weakly_loss_w 
@@ -52,12 +58,134 @@ class CCT(BaseModel):
         # Create the model
         self.encoder = Encoder(pretrained=pretrained)  
 
-        #save encoder structure to a file
+        #save encoder arch to a file
         encoder_file_path = 'outputs/encoder_arch.txt'
         if not os.path.isfile(encoder_file_path):
             encoder_arch_file = open(encoder_file_path, 'w')
             encoder_arch_file.write(repr(self.encoder))
             encoder_arch_file.close()
+
+        # Main decoder 
+        decoder_in_ch = num_out_ch // 4
+
+        self.main_decoder = MainDecoder(self.upscale, decoder_in_ch, num_classes=num_classes )
+
+        #save encoder arch to a file
+        decoder_file_path = 'outputs/decoder_arch.txt'
+        if not os.path.isfile(decoder_file_path):
+            decoder_arch_file = open(decoder_file_path, 'w')
+            decoder_arch_file.write(repr(self.main_decoder))
+            decoder_arch_file.close()
+
+        # The auxillary decoders 
+
+        if self.mode == 'semi' or self.mode == 'weakly_semi':
+
+            vat_decoder = [VATDecoder(upscale, decoder_in_ch, num_classes, xi=conf['xi'],
+                                eps=conf['eps']) for _ in range(conf['vat'])]
+
+            drop_decoder = [DropOutDecoder(upscale, decoder_in_ch, num_classes,
+                                        drop_rate=conf['drop_rate'], spatial_dropout=conf['spatial'])
+                                        for _ in range(conf['drop'])]
+
+            drop_decoder_file_path = 'outputs/drop_decoder_arch.txt'
+            if not os.path.isfile(drop_decoder_file_path):
+                drop_decoder_arch_file = open(drop_decoder_file_path, 'w')
+                drop_decoder_arch_file.write(repr(drop_decoder))
+                drop_decoder_arch_file.close()
+
+            cut_decoder = [CutOutDecoder(upscale, decoder_in_ch, num_classes, erase=conf['erase'])
+                                        for _ in range(conf['cutout'])]
+
+            context_m_decoder = [ContextMaskingDecoder(upscale, decoder_in_ch, num_classes)
+            							for _ in range(conf['context_masking'])]
+
+            object_masking = [ObjectMaskingDecoder(upscale, decoder_in_ch, num_classes)
+            							for _ in range(conf['object_masking'])]
+
+            feature_drop = [FeatureDropDecoder(upscale, decoder_in_ch, num_classes)
+            							for _ in range(conf['feature_drop'])]
+
+            feature_noise = [FeatureNoiseDecoder(upscale, decoder_in_ch, num_classes,
+            							uniform_range=conf['uniform_range'])
+            							for _ in range(conf['feature_noise'])]
+
+            self.aux_decoder = nn.ModuleList([*vat_decoder, *drop_decoder, *cut_decoder,
+                                *context_m_decoder, *object_masking, *feature_drop,
+                                *feature_noise])
+
+            aux_decoder_file_path = 'outputs/aux_decoder_arch.txt'
+            if not os.path.isfile(aux_decoder_file_path):
+                aux_decoder_arch_file = open(aux_decoder_file_path, 'w')
+                aux_decoder_arch_file.write(repr(self.aux_decoder))
+                aux_decoder_arch_file.close()
+
+    def forward(self, x_l=None, target_l=None, x_ul=None, target_ul=None, curr_iter=None, epoch=None):
+
+        if not self.training:
+            return self.main_decoder(self.encoder(x_l))
+
+        
+
+        input_size = (x_l.size(2), x_l.size(3))
+        output_l = self.main_decoder(self.encoder(x_l))
+
+        if output_l.shape != x_l.shape:
+            output_l = F.interpolate(output_l, size=input_size, mode='bilinear', align_corners=True)
+
+        if self.sup_type == "CE":
+            loss_sup = self.sup_loss(output_l, target_l, ignore_index=self.ignore_index, temperatute=self.softmax_temp) * self.sup_loss_w
+        else:
+            loss_sup = self.sup_loss(output_l, target_l, curr_iter=curr_iter, epoch=epoch, ignore_index=self.ignore_index) * self.sup_loss_w
+
+        if self.mode == 'supervised':
+            curr_losses = {'loss_sup': loss_sup}
+            outputs = {'sup_pred':output_l}
+            total_loss = loss_sup
+            return total_loss, curr_losses, outputs
+
+
+        elif self.mode == 'semi':
+
+            x_ul = self. self.encoder(x_ul)
+            output_ul = self.main_decoder(x_ul)
+
+            output_ul = [aux_decoder(x_ul, output_ul.detach()) for aux_decoder in self.aux_decoder]
+            targets = F.softmax(output_ul.detach(), dim=1)
+
+            loss_unsup = sum([self.unsuper_loss(inputs=u, targets=targets, conf_mask=self.confidence_masking, \
+                            threshold=self.confidence_th, use_softmax=False)
+                            for u in output_ul])
+
+
+            loss_unsup = (loss_unsup / len(output_ul))
+            curr_losses = {'loss_sup':loss_sup}
+
+            if output_ul.shape != x_l.shape:
+                output_ul = F.interpolate(output_ul, size=input_size, mode='bilinear', align_corners=True)
+
+            outputs = {'sup_pred': output_l, 'upsuP_pred':output_ul}
+
+            weight_u = self.upsup_loss_w(epoch=epoch, curr_iter=curr_iter)
+            loss_unsup = loss_unsup * weight_u
+            curr_losses['loss_unsup'] = loss_unsup
+            total_loss += loss_unsup + loss_sup
+
+
+            if self.use_weak_lables:
+                weight_w = (weight_u / self.unsup_loss_w.final_w) * self.weakly_loss_w
+                loss_weakly = sum([self.sup_loss(outp, target_ul, ignore_index=self.ignore_index) for outp in outputs_ul]) / len(outputs_ul)
+                loss_weakly = loss_weakly * weight_w
+                curr_losses['loss_weakly'] = loss_weakly
+                total_loss += loss_weakly
+
+            if self.aux_constraint:
+                pair_wise = pair_wise_loss(output_ul) * self.aux_constraint_w
+                curr_losses['pair_wise'] = pair_wise
+                loss_unsup += pair_wise
+
+            return total_loss, curr_losses, outputs             
+
 
 
 
