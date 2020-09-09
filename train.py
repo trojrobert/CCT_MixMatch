@@ -5,11 +5,15 @@ import argparse
 
 import models
 import dataloaders
+from trainer import Trainer
+from utils.logger import Logger
 from utils.losses import CE_loss, consistency_weight
 from models.encoder import Encoder
 import inspect 
 
 def main(config, resume):
+    torch.manual_seed(42)
+    train_logger = Logger()
 
     # Download data
     root_dir = config['train_supervised']["data_dir"] 
@@ -58,6 +62,20 @@ def main(config, resume):
                        ignore_index = val_loader.dataset.ignore_index)                               
     
     print(f'\n{model}\n')
+
+
+    # Training
+    trainer = Trainer(model=model, 
+                resume=resume, 
+                config=config,
+                supervised_loader=supervised_loader,
+                unsupervised_loader=unsupervised_loader,
+                val_loader=val_loader,
+                iters_per_epoch=iters_per_epoch,
+                train_logger=train_logger)
+
+
+    trainer.train()
 
 if __name__=='__main__':
 
