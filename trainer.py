@@ -1,3 +1,5 @@
+import time
+import numpy as np
 from base import BaseTrainer 
 
 class Trainer(BaseTrainer):
@@ -16,10 +18,11 @@ class Trainer(BaseTrainer):
         if config['trainer']['log_per_iter']:
             self.log_step = int(self.log_step / self.val_loader.batch_size) + 1 
 
-        self.num_classes = self.val_loader.dataset.num_classes
+        self.num_classes = config["num_classes"]
         self.mode = self.model.module.mode
 
         #TRANSFORMS FOR VISUALIZATION
+        """
         self.restore_transform = transforms.Compose([
             DeNormalize(self.val_loader.MEAN, self.val_loader.STD),
             transforms.ToPILImage()
@@ -29,6 +32,7 @@ class Trainer(BaseTrainer):
             transforms.Resize((400,400)),
             transforms.ToTensor()
         ])
+        """
 
         self.start_time = time.time()
 

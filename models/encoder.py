@@ -36,6 +36,15 @@ class Encoder(nn.Module):
 
         return x
 
+    def get_backbone_params(self):
+        """Get parameters of the base module"""
+        return self.base.parameters()
+
+    def get_module_params(self):
+        """Get parameter of psp module"""
+        return self.psp.parameters()
+
+
 class _PSPModule(nn.Module):
     def __init__(self, in_channels, bin_sizes):
         super(_PSPModule, self).__init__()
@@ -63,5 +72,6 @@ class _PSPModule(nn.Module):
                                         align_corners=False) for stage in self.stages])
         output = self.bottleneck(torch.cat(pyramids, dim=1))
         return output
+
 
         

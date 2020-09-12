@@ -1,0 +1,143 @@
+{
+    "data_settings": {},
+    "diff_lrs": true,
+    "experim_name": "CCT",
+    "ignore_index": 255,
+    "lr_scheduler": "Poly",
+    "model": {
+        "aux_constraint": false,
+        "aux_constraint_w": 1,
+        "confidence_masking": false,
+        "confidence_th": 0.5,
+        "context_masking": 2,
+        "cutout": 6,
+        "drop": 6,
+        "drop_rate": 0.5,
+        "eps": 2.0,
+        "erase": 0.4,
+        "feature_drop": 6,
+        "feature_noise": 6,
+        "num_out_ch": 2048,
+        "object_masking": 2,
+        "semi": true,
+        "softmax_temp": 1,
+        "spatial": true,
+        "sup_loss": "CE",
+        "supervised": false,
+        "supervised_w": 1,
+        "un_loss": "MSE",
+        "uniform_range": 0.3,
+        "upscale": 8,
+        "vat": 2,
+        "xi": 1e-06
+    },
+    "n_gpu": 1,
+    "n_labeled_examples": 1464,
+    "name": "CCT",
+    "num_classes": 21,
+    "optimizer": {
+        "args": {
+            "lr": 0.01,
+            "momentum": 0.9,
+            "weight_decay": 0.0001
+        },
+        "type": "SGD"
+    },
+    "pretrained": true,
+    "ramp_up": 0.1,
+    "train_supervised": {
+        "augment": true,
+        "base_size": 40,
+        "blur": false,
+        "colour_attributes": {
+            "brightness": 0.1,
+            "contrast": 0.1,
+            "hue": 0.1,
+            "saturation": 0.1
+        },
+        "crop_size": 32,
+        "data_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/data",
+        "flip": true,
+        "ignore_index": 255,
+        "mean": [
+            0.485,
+            0.456,
+            0.406
+        ],
+        "n_labeled_examples": 1464,
+        "rotate": false,
+        "scale": true,
+        "split": "train_supervised",
+        "splits_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/dataloaders/voc_splits",
+        "std": [
+            0.229,
+            0.224,
+            0.225
+        ]
+    },
+    "train_unsupervised": {
+        "augment": true,
+        "base_size": 40,
+        "blur": false,
+        "colour_attributes": {
+            "brightness": 0.1,
+            "contrast": 0.1,
+            "hue": 0.1,
+            "saturation": 0.1
+        },
+        "crop_size": 32,
+        "data_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/data",
+        "flip": true,
+        "ignore_index": 255,
+        "mean": [
+            0.485,
+            0.456,
+            0.406
+        ],
+        "n_labeled_examples": 1464,
+        "rotate": false,
+        "scale": true,
+        "split": "train_unsupervised",
+        "splits_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/dataloaders/voc_splits",
+        "std": [
+            0.229,
+            0.224,
+            0.225
+        ],
+        "use_weak_lables": false,
+        "weak_labels_output": "pseudo_labels/result/pseudo_labels"
+    },
+    "trainer": {
+        "early_stop": 10,
+        "epochs": 1,
+        "log_dir": "saved/",
+        "log_per_iter": 20,
+        "monitor": "max Mean_IoU",
+        "save_dir": "saved/",
+        "save_period": 1,
+        "tensorboardX": true,
+        "val": true,
+        "val_per_epochs": 5
+    },
+    "unsupervised_w": 30,
+    "use_weak_lables": false,
+    "val_loader": {
+        "data_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/data",
+        "ignore_index": 255,
+        "mean": [
+            0.485,
+            0.456,
+            0.406
+        ],
+        "split": "val",
+        "splits_dir": "/home/trojrobert/Documents/Thesis/CCT_MixMatch/dataloaders/voc_splits",
+        "std": [
+            0.229,
+            0.224,
+            0.225
+        ],
+        "val": true
+    },
+    "weakly_loss_w": 0.4,
+    "year": "2012"
+}

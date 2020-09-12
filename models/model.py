@@ -1,4 +1,5 @@
 import os  
+from itertools import chain 
 
 from utils.losses import * 
 
@@ -110,7 +111,7 @@ class CCT(BaseModel):
             							uniform_range=conf['uniform_range'])
             							for _ in range(conf['feature_noise'])]
 
-            self.aux_decoder = nn.ModuleList([*vat_decoder, *drop_decoder, *cut_decoder,
+            self.aux_decoders = nn.ModuleList([*vat_decoder, *drop_decoder, *cut_decoder,
                                 *context_m_decoder, *object_masking, *feature_drop,
                                 *feature_noise])
 
@@ -187,5 +188,15 @@ class CCT(BaseModel):
             return total_loss, curr_losses, outputs             
 
 
+    def get_backbone_params(self):
+        return self.encoder.get_backbone_params()
+
+    def get_other_params(self):
+        """ Check for the use of auxiliary decoder"""
+        if self.mode == 'semi':
+            return chain(self.encoder.get_module_params(), self.main_decoder.parameters(), 
+                        self.aux_decoders.parameters())
+
+        return chain(self.encoder.get_module_params(), self.main_decoder.parameters())
 
 
