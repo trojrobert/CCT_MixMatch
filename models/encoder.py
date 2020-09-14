@@ -1,7 +1,8 @@
 import os
 from models.backbones.resnet_backbone import ResNetBackbone
-
+import torch
 import torch.nn as nn
+import torch.nn.functional as F 
 
 resnet50 = { "path": "models/backbones/pretrained/3x3resnet50-imagenet.pth",}
 

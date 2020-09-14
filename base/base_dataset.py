@@ -1,5 +1,8 @@
 import numpy as np 
-
+import random
+import cv2 
+from PIL import Image 
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
@@ -20,6 +23,7 @@ class BaseDataSet(Dataset):
         self.colour_attributes = colour_attributes
         self.ignore_index = ignore_index
         self.val = val
+        self.jitter = jitter
 
 
         self.image_padding = (np.array(self.mean)*255.).tolist()
@@ -141,7 +145,7 @@ class BaseDataSet(Dataset):
         if self.jitter:
             image , label = self._jitter(image, label)
         
-        image = self.normalize(self.to_tensor(Image.fromarray(np.unit8(image))))
+        image = self.normalize(self.to_tensor(Image.fromarray(np.uint8(image))))
         return image, label
 
 
@@ -187,9 +191,37 @@ class BaseDataSet(Dataset):
             image (): cropped image  
             label (): label of cropped image 
         """
-        image = transforms.CenterCrop(self.crop_size)
-        label = transforms.CenterCrop(self.crop_size)
-        
+        # Padding to return the correct crop size
+        if (isinstance(self.crop_size, list) or isinstance(self.crop_size, tuple)) and len(self.crop_size) == 2:
+            crop_h, crop_w = self.crop_size 
+        elif isinstance(self.crop_size, int):
+            crop_h, crop_w = self.crop_size, self.crop_size 
+        else:
+            raise ValueError
+
+        h, w, _ = image.shape
+        pad_h = max(crop_h - h, 0)
+        pad_w = max(crop_w - w, 0)
+        pad_kwargs = {
+            "top": 0,
+            "bottom": pad_h,
+            "left": 0,
+            "right": pad_w,
+            "borderType": cv2.BORDER_CONSTANT,}
+        if pad_h > 0 or pad_w > 0:
+            image = cv2.copyMakeBorder(image, value=self.image_padding, **pad_kwargs)
+            label = cv2.copyMakeBorder(label, value=self.ignore_index, **pad_kwargs)
+
+        # Cropping 
+        h, w, _ = image.shape
+        start_h = random.randint(0, h - crop_h)
+        start_w = random.randint(0, w - crop_w)
+        end_h = start_h + crop_h
+        end_w = start_w + crop_w
+        image = image[start_h:end_h, start_w:end_w]
+        label = label[start_h:end_h, start_w:end_w]
+        return image, label
+
         return image, label 
 
     def _flip(self, image, label):

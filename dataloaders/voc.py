@@ -1,4 +1,5 @@
 import os 
+import numpy as np 
 from PIL import Image 
 
 from base import BaseDataSet, BaseDataLoader
@@ -31,7 +32,7 @@ class VOCDataset(BaseDataSet):
         label_path = os.path.join(self.root, self.labels[index][1:])
         label = np.asarray(Image.open(label_path), dtype=np.int32)
 
-        return image, label, images_id
+        return image, label, image_id
 
     def _set_files(self):
         """Using a custom txt file to create image and label path names"""

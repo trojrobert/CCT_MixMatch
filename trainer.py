@@ -1,5 +1,7 @@
 import time
 import numpy as np
+from itertools import cycle
+from tqdm import tqdm
 from base import BaseTrainer 
 
 class Trainer(BaseTrainer):
@@ -36,46 +38,77 @@ class Trainer(BaseTrainer):
 
         self.start_time = time.time()
 
-    def train(self):
+    def _train_epoch(self, epoch):
 
-        for epoch in range(self.start_epoch, self.epochs+1):
+        #self.html_results.save()
 
-            results = self._train_epoch(epoch)
+        self.logger.info('\n')
+        self.model.train()
 
-            if self.do_validation and epoch % self.config['trainer']['val_per_epoch'] == 0:
-                results = self._valid_epoch(epoch)
+        if self.mode == 'supervised':
+            dataloader = iter(self.supervised_loader)
+            tbar = tqdm(range(len(self.supervised_loader)), ncols=135)
 
-                self.logger.info('\n\n')
+        else:
+            dataloader = iter(zip(cycle(self.supervised_loader), self.unsupervised_loader))
+            tbar = tqdm(range(len(self.unsupervised_loader)), ncols=135)
 
-                for k, v in results.items():
-                    self.logger.info(f' {str(k):15s}: {v}')
+        #self._reset_metrics()
 
-            if self.train_logger is not None: 
-                log = {'epoch' : epoch, **results}
-                self.train_logger.add_entry(log)
+        for batch_idx in tbar:
+            if self.mode == "supervised":
+                (input_l, target_l), (input_ul, target_ul) = next(dataloader), (None, None)
 
-            if self.mnt_mode != 'off' and epoch % self.config['trainer']['val_per_epochs'] == 0:
-                try:
-                    if self.mnt_mode == 'min':self.improved = (log[sefl.mnt_metric] < self.mnt_best)
-                    else: self.improved = (log[self.mnt_metric] > self.mnt_best)
+            else:
+                (input_l, target_l), (input_ul, target_ul) = next(dataloader)
+                input_ul, target_ul = input_ul, target_ul
 
-                except KeyError:
-                    self.logger.warning(f"The metric being tracked ({self.mnt_metric}) has not been calculted. Train stops.")
-                    break
+            input_l, target_l = input_l, target_l
+            self.optimizer.zero_grad
 
-                if self.improved:
-                    self.mnt_best = log[self.mnt_metric]
-                    self.not_improved_count = 0
+            total_loss, cur_losses, output = self.model(x_l=input_l, target_l=target_l, x_ul=input_ul, 
+                                                        curr_iter= batch_idx, target_ul=target_ul, epoch=epoch-1)
+            
+            total_loss = total_loss.mean()
+            total_loss.backward()
+            self.optimizer.step()
 
-                else:
-                    self.not_imporved_count += 1
+            self._update_losses(cur_losses)
+            self._compute_metrics(output, target_l, target_ul, epoch-1)
+            logs = self._log_values(cur_losses)
 
-                if self.not_improved_count > self.early_stoping:
-                    self.logger.info(f'\nPerformance didn\'t improve for {self.early_stoping} epochs')
-                    self.logger.warning('Training Stoped')
-                    break
+            if batch_idx % self.log_step == 0:
+                self.wrt_step = (epoch - 1) * len(self.unsupervised_loader) + batch_idx
+                self._write_scalars_tb(logs)
 
-            # SAVE CHECKPOINT
-            if epoch % self.save_period == 0:
-                self._save_checkpoint(epoch, save_best=self.improved)
-        self.html_results.save()
+            if batch_idx % int(len(self.unsupervised_loader)*0.9) == 0:
+                sel._write_img_tb(input_l, target_l, input_ul, target_ul, outputs, epoch)
+
+            del input_l, target_l, input_ul, target_ul
+            del total_loss, cur_losses, outputs
+
+            tbar.set_description('T ({}) | Ls {:.2f} Lu {:.2f} Lw {:.2f} PW {:.2f} m1 {:.2f} m2 {:.2f} |'.format(
+                epoch, self.loss_sup.average, self.loss_unsup.average, self.loss_weakly.average,
+                self.pair_wise.average, self.mIoU_l, self.mIoU_ul))
+
+            self.lr_scheduler.step(epoch=epoch-1)
+
+        return logs 
+
+    """
+    def _reset_metrics(self):
+
+        self.loss_sup = AverageMeter()
+        self.loss_unsup = AverageMeter()
+        self.loss_weakly = AverageMeter()
+        self.pair_wise = AverageMeter()
+
+        self.total_inter_l, self.total_union_l = 0, 0
+        self.total_correct_l, self.total_label_l = 0, 0
+        self.total_inter_ul, self.total_union_ul = 0, 0 
+        self.total_correct_ul, self.total_label_ul = 0, 0
+        self.mIoU_l, self.mIoU_ul = 0, 0
+        self.pixel_acc_l, self.pixel_acc_ul = 0, 0
+        self.class_iou_l, self.class_iou_ul = {}, {}
+
+    """

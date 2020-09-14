@@ -148,10 +148,10 @@ class CCT(BaseModel):
 
         elif self.mode == 'semi':
 
-            x_ul = self. self.encoder(x_ul)
+            x_ul = self.encoder(x_ul)
             output_ul = self.main_decoder(x_ul)
 
-            output_ul = [aux_decoder(x_ul, output_ul.detach()) for aux_decoder in self.aux_decoder]
+            output_ul = [aux_decoder(x_ul, output_ul.detach()) for aux_decoder in self.aux_decoders]
             targets = F.softmax(output_ul.detach(), dim=1)
 
             loss_unsup = sum([self.unsuper_loss(inputs=u, targets=targets, conf_mask=self.confidence_masking, \

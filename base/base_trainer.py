@@ -72,7 +72,7 @@ class BaseTrainer:
         if resume:self._resume_checkpoint(resume)
 
     def _get_available_devices(self, n_gpu):
-        """Check for resources available"""
+        """Check for resource available"""
         sys_gpu = torch.cuda.device_count()
 
         if sys_gpu == 0:
@@ -80,7 +80,7 @@ class BaseTrainer:
             n_gpu = 0
 
         elif n_gpu > sys_gpu:
-            self.logger.warnin(f'No of GPU requested is {n_gpu} but only {sys_gpu} are available')
+            self.logger.warning(f'No of GPU requested is {n_gpu} but only {sys_gpu} are available')
             n_gpu = sys_gpu
 
         device = torch.device('cuda:0' if n_gpu > 0 else 'cpu')
@@ -88,6 +88,51 @@ class BaseTrainer:
         available_gpus = list(range(n_gpu))
 
         return  device, available_gpus
+
+    def train(self):
+
+        for epoch in range(self.start_epoch, self.epochs+1):
+
+            results = self._train_epoch(epoch)
+
+            if self.do_validation and epoch % self.config['trainer']['val_per_epoch'] == 0:
+                results = self._valid_epoch(epoch)
+
+                self.logger.info('\n\n')
+
+                for k, v in results.items():
+                    self.logger.info(f' {str(k):15s}: {v}')
+
+            if self.train_logger is not None: 
+                log = {'epoch' : epoch, **results}
+                self.train_logger.add_entry(log)
+
+            if self.mnt_mode != 'off' and epoch % self.config['trainer']['val_per_epochs'] == 0:
+                try:
+                    if self.mnt_mode == 'min':self.improved = (log[sefl.mnt_metric] < self.mnt_best)
+                    else: self.improved = (log[self.mnt_metric] > self.mnt_best)
+
+                except KeyError:
+                    self.logger.warning(f"The metric being tracked ({self.mnt_metric}) has not been calculted. Train stops.")
+                    break
+
+                if self.improved:
+                    self.mnt_best = log[self.mnt_metric]
+                    self.not_improved_count = 0
+
+                else:
+                    self.not_imporved_count += 1
+
+                if self.not_improved_count > self.early_stoping:
+                    self.logger.info(f'\nPerformance didn\'t improve for {self.early_stoping} epochs')
+                    self.logger.warning('Training Stoped')
+                    break
+
+            # SAVE CHECKPOINT
+            if epoch % self.save_period == 0:
+                self._save_checkpoint(epoch, save_best=self.improved)
+        self.html_results.save()
+
 
 def get_instance(module, name, config, *args):
 
