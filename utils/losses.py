@@ -20,7 +20,7 @@ class consistency_weight:
     def __call__(self, epoch, curr_iter): 
 
         cur_total_iter = self.iters_per_epoch * epoch + curr_iter
-        if curr_total_iter < self.rampup_starts: 
+        if cur_total_iter < self.rampup_starts: 
             return 0 
         self.current_rampup =  self.rampup_func(cur_total_iter - self.rampup_starts, self.rampup_length)
         return self.final_w * self.current_rampup
@@ -29,7 +29,7 @@ class consistency_weight:
 def CE_loss(input_logits, target_targets, ignore_index, temperatute=1):
     return F.cross_entropy(input_logits/temperatute, target_targets, ignore_index=ignore_index)
 
-def softmax_mse_loss(inputs, target, conf_mask=False, threshold=None, use_softmax=False):
+def softmax_mse_loss(inputs, targets, conf_mask=False, threshold=None, use_softmax=False):
     """Calculate MSE Loss
 
     Args:
@@ -43,10 +43,10 @@ def softmax_mse_loss(inputs, target, conf_mask=False, threshold=None, use_softma
 
     """
 
-    assert inputs.required_grad == True and targets.requires_grad == False
+    assert inputs.requires_grad == True and targets.requires_grad == False
     assert inputs.size() == targets.size()
 
-    inputs = F.sofmax(inputs, dim=1)
+    inputs = F.softmax(inputs, dim=1)
 
     if use_softmax:
         target = F.softmax(targets, dim=1)

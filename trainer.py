@@ -1,6 +1,7 @@
 import time
 import numpy as np
 from itertools import cycle
+from utils.metrics import eval_metrics, AverageMeter
 from tqdm import tqdm
 from base import BaseTrainer 
 
@@ -53,7 +54,7 @@ class Trainer(BaseTrainer):
             dataloader = iter(zip(cycle(self.supervised_loader), self.unsupervised_loader))
             tbar = tqdm(range(len(self.unsupervised_loader)), ncols=135)
 
-        #self._reset_metrics()
+        self._reset_metrics()
 
         for batch_idx in tbar:
             if self.mode == "supervised":
@@ -66,7 +67,7 @@ class Trainer(BaseTrainer):
             input_l, target_l = input_l, target_l
             self.optimizer.zero_grad
 
-            total_loss, cur_losses, output = self.model(x_l=input_l, target_l=target_l, x_ul=input_ul, 
+            total_loss, cur_losses, outputs = self.model(x_l=input_l, target_l=target_l, x_ul=input_ul, 
                                                         curr_iter= batch_idx, target_ul=target_ul, epoch=epoch-1)
             
             total_loss = total_loss.mean()
@@ -74,7 +75,7 @@ class Trainer(BaseTrainer):
             self.optimizer.step()
 
             self._update_losses(cur_losses)
-            self._compute_metrics(output, target_l, target_ul, epoch-1)
+            self._compute_metrics(outputs, target_l, target_ul, epoch-1)
             logs = self._log_values(cur_losses)
 
             if batch_idx % self.log_step == 0:
@@ -82,7 +83,7 @@ class Trainer(BaseTrainer):
                 self._write_scalars_tb(logs)
 
             if batch_idx % int(len(self.unsupervised_loader)*0.9) == 0:
-                sel._write_img_tb(input_l, target_l, input_ul, target_ul, outputs, epoch)
+                self._write_img_tb(input_l, target_l, input_ul, target_ul, outputs, epoch)
 
             del input_l, target_l, input_ul, target_ul
             del total_loss, cur_losses, outputs
@@ -95,7 +96,102 @@ class Trainer(BaseTrainer):
 
         return logs 
 
-    """
+    def _update_losses(self, cur_losses):
+        if "loss_sup" in cur_losses.keys():
+            self.loss_sup.update(cur_losses['loss_sup'].mean().item())
+        if "loss_unsup" in cur_losses.keys():
+            self.loss_unsup.update(cur_losses['loss_unsup'].mean().item())
+        if "loss_weakly" in cur_losses.keys():
+            self.loss_weakly.update(cur_losses['loss_weakly'].mean().item())
+        if "pair_wise" in cur_losses.keys():
+            self.pair_wise.update(cur_losses['pair_wise'].mean().item())
+
+    
+    def _compute_metrics(self, outputs, target_l, target_ul, epoch):
+        seg_metrics_l = eval_metrics(outputs['sup_pred'], target_l, self.num_classes, self.ignore_index)
+        self._update_seg_metrics(*seg_metrics_l, True)
+        seg_metrics_l = self._get_seg_metrics(True)
+        self.pixel_acc_l, self.mIoU_l, self.class_iou_l = seg_metrics_l.values()
+
+        if self.mode == 'semi':
+            seg_metrics_ul = eval_metrics(outputs['unsup_pred'], target_ul, self.num_classes, self.ignore_index)
+            self._update_seg_metrics(*seg_metrics_ul, False)
+            seg_metrics_ul = self._get_seg_metrics(False)
+            self.pixel_acc_ul, self.mIoU_ul, self.class_iou_ul = seg_metrics_ul.values()
+
+    
+    def _log_values(self, cur_losses):
+        logs = {}
+        if "loss_sup" in cur_losses.keys():
+            logs['loss_sup'] = self.loss_sup.average
+        if "loss_unsup" in cur_losses.keys():
+            logs['loss_unsup'] = self.loss_unsup.average
+        if "loss_weakly" in cur_losses.keys():
+            logs['loss_weakly'] = self.loss_weakly.average
+        if "pair_wise" in cur_losses.keys():
+            logs['pair_wise'] = self.pair_wise.average
+
+        logs['mIoU_labeled'] = self.mIoU_l
+        logs['pixel_acc_labeled'] = self.pixel_acc_l
+        if self.mode == 'semi':
+            logs['mIoU_unlabeled'] = self.mIoU_ul
+            logs['pixel_acc_unlabeled'] = self.pixel_acc_ul
+        return logs
+
+    def _write_scalars_tb(self, logs):
+        for k, v in logs.items():
+            if 'class_iou' not in k: self.writer.add_scalar(f'train/{k}', v, self.wrt_step)
+        for i, opt_group in enumerate(self.optimizer.param_groups):
+            self.writer.add_scalar(f'train/Learning_rate_{i}', opt_group['lr'], self.wrt_step)
+        current_rampup = self.model.module.unsup_loss_w.current_rampup
+        self.writer.add_scalar('train/Unsupervised_rampup', current_rampup, self.wrt_step)
+
+
+    
+    def _update_seg_metrics(self, correct, labeled, inter, union, supervised=True):
+        if supervised:
+            self.total_correct_l += correct
+            self.total_label_l += labeled
+            self.total_inter_l += inter
+            self.total_union_l += union
+        else:
+            self.total_correct_ul += correct
+            self.total_label_ul += labeled
+            self.total_inter_ul += inter
+            self.total_union_ul += union
+
+    def _get_seg_metrics(self, supervised=True):
+        if supervised:
+            pixAcc = 1.0 * self.total_correct_l / (np.spacing(1) + self.total_label_l)
+            IoU = 1.0 * self.total_inter_l / (np.spacing(1) + self.total_union_l)
+        else:
+            pixAcc = 1.0 * self.total_correct_ul / (np.spacing(1) + self.total_label_ul)
+            IoU = 1.0 * self.total_inter_ul / (np.spacing(1) + self.total_union_ul)
+        mIoU = IoU.mean()
+        return {
+            "Pixel_Accuracy": np.round(pixAcc, 3),
+            "Mean_IoU": np.round(mIoU, 3),
+            "Class_IoU": dict(zip(range(self.num_classes), np.round(IoU, 3)))
+        }
+
+    def _write_img_tb(self, input_l, target_l, input_ul, target_ul, outputs, epoch):
+        outputs_l_np = outputs['sup_pred'].data.max(1)[1].cpu().numpy()
+        targets_l_np = target_l.data.cpu().numpy()
+        imgs = [[i.data.cpu(), j, k] for i, j, k in zip(input_l, outputs_l_np, targets_l_np)]
+        #self._add_img_tb(imgs, 'supervised')
+
+        if self.mode == 'semi':
+            outputs_ul_np = outputs['unsup_pred'].data.max(1)[1].cpu().numpy()
+            targets_ul_np = target_ul.data.cpu().numpy()
+            imgs = [[i.data.cpu(), j, k] for i, j, k in zip(input_ul, outputs_ul_np, targets_ul_np)]
+            #self._add_img_tb(imgs, 'unsupervised')
+
+
+
+
+
+
+
     def _reset_metrics(self):
 
         self.loss_sup = AverageMeter()
@@ -111,4 +207,5 @@ class Trainer(BaseTrainer):
         self.pixel_acc_l, self.pixel_acc_ul = 0, 0
         self.class_iou_l, self.class_iou_ul = {}, {}
 
-    """
+
+

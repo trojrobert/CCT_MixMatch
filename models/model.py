@@ -151,26 +151,27 @@ class CCT(BaseModel):
             x_ul = self.encoder(x_ul)
             output_ul = self.main_decoder(x_ul)
 
-            output_ul = [aux_decoder(x_ul, output_ul.detach()) for aux_decoder in self.aux_decoders]
+            outputs_ul = [aux_decoder(x_ul, output_ul.detach()) for aux_decoder in self.aux_decoders]
+            #print(f"output_ul {output_ul}")
             targets = F.softmax(output_ul.detach(), dim=1)
 
             loss_unsup = sum([self.unsuper_loss(inputs=u, targets=targets, conf_mask=self.confidence_masking, \
                             threshold=self.confidence_th, use_softmax=False)
-                            for u in output_ul])
+                            for u in outputs_ul])
 
 
-            loss_unsup = (loss_unsup / len(output_ul))
+            loss_unsup = (loss_unsup / len(outputs_ul))
             curr_losses = {'loss_sup':loss_sup}
 
             if output_ul.shape != x_l.shape:
                 output_ul = F.interpolate(output_ul, size=input_size, mode='bilinear', align_corners=True)
 
-            outputs = {'sup_pred': output_l, 'upsuP_pred':output_ul}
+            outputs = {'sup_pred': output_l, 'unsup_pred':output_ul}
 
-            weight_u = self.upsup_loss_w(epoch=epoch, curr_iter=curr_iter)
+            weight_u = self.unsup_loss_w(epoch=epoch, curr_iter=curr_iter)
             loss_unsup = loss_unsup * weight_u
             curr_losses['loss_unsup'] = loss_unsup
-            total_loss += loss_unsup + loss_sup
+            total_loss = loss_unsup + loss_sup
 
 
             if self.use_weak_lables:
